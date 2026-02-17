@@ -1,21 +1,21 @@
-const CACHE_NAME = 'luna-reads-shell-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
-  // no PDFs/EPUB/CBZ cached to save space
-];
+const CACHE_NAME="luna-reads-v3";
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
+self.addEventListener("install",e=>{
+  self.skipWaiting();
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+self.addEventListener("activate",e=>{
+  e.waitUntil(
+    caches.keys().then(keys=>{
+      return Promise.all(
+        keys.filter(k=>k!==CACHE_NAME)
+            .map(k=>caches.delete(k))
+      );
+    })
   );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch",e=>{
+  e.respondWith(fetch(e.request));
 });
