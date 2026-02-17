@@ -1,7 +1,7 @@
 {
   "name": "Luna Reads",
   "short_name": "LunaReads",
-  "start_url": ".",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#2962ff",
