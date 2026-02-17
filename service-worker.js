@@ -1,4 +1,4 @@
-const CACHE_NAME="luna-reads-v3";
+const CACHE_NAME="luna-reads-v4";
 
 self.addEventListener("install",e=>{
   self.skipWaiting();
@@ -6,12 +6,9 @@ self.addEventListener("install",e=>{
 
 self.addEventListener("activate",e=>{
   e.waitUntil(
-    caches.keys().then(keys=>{
-      return Promise.all(
-        keys.filter(k=>k!==CACHE_NAME)
-            .map(k=>caches.delete(k))
-      );
-    })
+    caches.keys().then(keys=>Promise.all(
+      keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))
+    ))
   );
   self.clients.claim();
 });
