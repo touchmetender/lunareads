@@ -22,7 +22,7 @@ body{margin:0;font-family:sans-serif;background:#0f0f0f;color:white;}
 /* ===== SECTIONS ===== */
 .section-title{padding: 90px 12px 12px 12px;font-weight:bold;} /* 72px for header space */
 .horizontal{display:flex;overflow-x:auto;gap:12px;padding:12px; padding-bottom: 12px; padding-top: 12px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:12px;overflow-y:auto;;padding-bottom: 80px; padding-top: 100px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:12px;overflow-y:auto;;padding-bottom: 80px; padding-top: 120px;}
 .card{background:#1b1b1b;border-radius:12px;overflow:hidden;cursor:pointer;min-width:140px;max-width: 140px; position:relative;}
 .card img{width:100%;}
 .card-info{padding:4px;}
@@ -65,7 +65,7 @@ canvas{margin-bottom:10px;max-width:100%;}
   <div class="section-title">Continue Reading...</div>
   <div id="continueRow" class="horizontal"></div>
 
-  <div class="section-title">Recently Added Books / Ebooks / Manga / Manhwa / Manhua</div>
+  <div class="section-title">Recently Added Books / Ebooks / Manga / Manhwa / Manhua / Stories</div>
   <div id="recentRow" class="horizontal"></div>
 
   <div class="section-title">Browse Library</div>
@@ -84,11 +84,11 @@ canvas{margin-bottom:10px;max-width:100%;}
       <option value="Manhua">Manhua</option>
       <option value="Book">Book</option>
     </select>
-<!--   <select id="sortBrowse">
+    <select id="sortBrowse">
       <option value="updated">Updated Time</option>
       <option value="alphabet">Alphabetical</option>
       <option value="downloaded">Downloaded</option>
-    </select> -->
+    </select>
   </div>
   <div id="browseGrid" class="grid"></div>
 </div>
