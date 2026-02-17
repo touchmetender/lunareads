@@ -98,6 +98,13 @@ canvas{margin-bottom:10px;max-width:100%;}
   <div style="padding:12px;">
     <h2>⚙️ Settings</h2>
     <div id="downloadManager"></div>
+    
+    <!-- Clear Data Button -->
+    <div style="margin-top:20px;">
+      <button id="clearAppDataBtn" style="padding:10px; background:#ff3d00; color:white; border:none; border-radius:6px; font-weight:bold;">
+        🗑️ Clear All App Data
+      </button>
+    </div>
   </div>
 </div>
 
@@ -127,7 +134,34 @@ canvas{margin-bottom:10px;max-width:100%;}
   <button onclick="showView('menuView')">⚙️ Settings</button>
 </div>
 
+<!-- Notification container -->
+<div id="notification" style="
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#ff5252;
+  color:white;
+  padding:12px 20px;
+  border-radius:10px;
+  font-weight:bold;
+  display:none;
+  z-index:9999;
+  box-shadow:0 4px 8px rgba(0,0,0,0.3);
+"></div>  
+  
 <script>
+  
+function showNotification(message, duration = 3000) {
+  const notif = document.getElementById("notification");
+  notif.innerText = message;
+  notif.style.display = "block";
+
+  setTimeout(() => {
+    notif.style.display = "none";
+  }, duration);
+}
+  
 // ================= SERVICE WORKER =================
 if('serviceWorker' in navigator){navigator.serviceWorker.register("service-worker.js").then(r=>r.update());}
 
@@ -315,8 +349,35 @@ function openDB(){return new Promise(resolve=>{const request=indexedDB.open("Lun
 async function getFile(id){const db=await openDB();return new Promise(resolve=>{const tx=db.transaction("files","readonly");const req=tx.objectStore("files").get(id);req.onsuccess=()=>resolve(req.result||null);});}
 function isDownloaded(id){return !!historyData[id]?.downloaded;}
 
+
 // ================= INIT =================
 loadLibrary();
+  
+document.getElementById("clearAppDataBtn").onclick = async function() {
+  if (!confirm("Are you sure you want to clear all app data? This cannot be undone.")) return;
+
+  // 1. Clear localStorage
+  localStorage.clear();
+
+  // 2. Clear IndexedDB
+  if (window.indexedDB) {
+    const dbDeleteRequest = indexedDB.deleteDatabase("LunaReadsDB");
+    dbDeleteRequest.onsuccess = () => console.log("IndexedDB deleted successfully");
+    dbDeleteRequest.onerror = () => console.log("Error deleting IndexedDB");
+  }
+
+  // 3. Clear Service Worker caches
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    for (const name of cacheNames) {
+      await caches.delete(name);
+    }
+    console.log("All caches deleted");
+  }
+
+  showNotification("✅ All app data cleared. Reloading...", 4000);
+  setTimeout(() => location.reload(), 1000); // short delay to let user see notification
+};
 </script>
 
 </body>
