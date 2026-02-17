@@ -1,114 +1,193 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Luna Reads</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://unpkg.com/epubjs/dist/epub.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.11.0/jszip.min.js"></script>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2962ff">
-
-<script>
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('service-worker.js');
-}
-</script>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#0f0f0f;color:white;}
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#0f0f0f;
+  color:white;
+}
+
+/* Views */
+.view{
+  position:absolute;
+  width:100%;
+  height:100vh;
+  top:0;
+  left:0;
+}
 .hidden{display:none;}
-.topbar{display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:#1a1a1a;}
-input,select{padding:8px;border:none;border-radius:6px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:12px;}
-.card{background:#1b1b1b;border-radius:12px;overflow:hidden;cursor:pointer;}
+
+/* Home */
+.topbar{
+  background:#1a1a1a;
+  padding:10px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.topbar input, .topbar select{
+  padding:6px;
+  border-radius:6px;
+  border:none;
+}
+
+.section-title{
+  padding:12px;
+  font-weight:bold;
+}
+
+.horizontal{
+  display:flex;
+  overflow-x:auto;
+  gap:12px;
+  padding:12px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:12px;
+  padding:12px;
+  overflow-y:auto;
+  height:calc(100vh - 220px);
+}
+
+.card{
+  background:#1b1b1b;
+  border-radius:12px;
+  overflow:hidden;
+  cursor:pointer;
+  min-width:140px;
+}
+
 .card img{width:100%;}
 .card-info{padding:8px;}
-.horizontal-scroll{display:flex;overflow-x:auto;gap:12px;padding:12px;}
-.horizontal-scroll .card{min-width:140px;}
-.progress-bar{height:5px;background:#00e676;}
+.progress{height:4px;background:#00e676;}
+
+/* Reader */
+.reader-header{
+  height:56px;
+  background:#121212;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 12px;
+  border-bottom:1px solid #222;
+}
+
+.reader-header button{
+  background:none;
+  border:none;
+  color:white;
+  font-size:18px;
+}
+
 #reader{
-  height:100vh;
+  height:calc(100vh - 56px);
   overflow-y:auto;
   padding:10px;
   display:flex;
   flex-wrap:wrap;
   justify-content:center;
-  transform-origin: top center;
-  touch-action: none;
 }
-canvas,img{
+
+canvas{
   margin-bottom:10px;
   max-width:100%;
 }
-.back-btn{
+
+/* Menu */
+.menu{
+  position:absolute;
+  top:56px;
+  right:10px;
+  background:#1b1b1b;
   padding:10px;
+  border-radius:8px;
+  display:none;
+  flex-direction:column;
+  gap:8px;
+}
+.menu button{
+  padding:6px;
   background:#2962ff;
-  color:white;
   border:none;
+  color:white;
   border-radius:6px;
-  margin:10px;
 }
 </style>
 </head>
 <body>
 
-<div id="libraryView">
-<div class="topbar">
-<h2>🌙 Luna Reads</h2>
-<input id="searchInput" placeholder="Search">
-<select id="categoryFilter">
-<option value="All">All</option>
-<option value="Manga">Manga</option>
-<option value="Manhwa">Manhwa</option>
-<option value="Manhua">Manhua</option>
-<option value="Book">Book</option>
-<option value="Original">Original</option>
-</select>
+<!-- HOME -->
+<div id="libraryView" class="view">
+  <div class="topbar">
+    <h2>🌙 Luna Reads</h2>
+    <input id="searchInput" placeholder="Search">
+    <select id="categoryFilter">
+      <option value="All">All</option>
+      <option value="Manga">Manga</option>
+      <option value="Manhwa">Manhwa</option>
+      <option value="Manhua">Manhua</option>
+      <option value="Book">Book</option>
+    </select>
+  </div>
+
+  <div class="section-title">Continue Reading</div>
+  <div id="continueRow" class="horizontal"></div>
+
+  <div class="section-title">Recently Added</div>
+  <div id="recentRow" class="horizontal"></div>
+
+  <div class="section-title">Library</div>
+  <div id="grid" class="grid"></div>
 </div>
 
-<h3 style="padding-left:12px;">Continue Reading</h3>
-<div id="continueRow" class="horizontal-scroll"></div>
+<!-- READER -->
+<div id="readerView" class="view hidden">
+  <div class="reader-header">
+    <button onclick="goBack()">←</button>
+    <span id="readerTitle"></span>
+    <button onclick="toggleMenu()">☰</button>
+  </div>
 
-<h3 style="padding-left:12px;">Recently Added</h3>
-<div id="recentRow" class="horizontal-scroll"></div>
+  <div id="reader"></div>
 
-<h3 style="padding-left:12px;">Library</h3>
-<div id="grid" class="grid"></div>
-</div>
-
-<div id="readerView" class="hidden">
-<button class="back-btn" onclick="goBack()">⬅ Back</button>
-<div id="reader"></div>
+  <div id="readerMenu" class="menu">
+    <button onclick="setMode('scroll')">Scroll Mode</button>
+    <button onclick="setMode('double')">2-Page Spread</button>
+    <button onclick="setMode('single')">Single Page</button>
+    <button onclick="downloadCurrentPDF()">Download Offline</button>
+  </div>
 </div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 let LIBRARY=[];
-let historyData=JSON.parse(localStorage.getItem("lunaHistory"))||{};
 let currentBook=null;
 let currentPDF=null;
 let renderedPages={};
 let baseScale=1;
-let currentZoom=1;
+let readingMode="scroll";
+let historyData=JSON.parse(localStorage.getItem("lunaHistory"))||{};
 
 /* ================= LOAD LIBRARY ================= */
 
 async function loadLibrary(){
-  const res=await fetch("library.json",{cache:'no-cache'});
+  const res=await fetch("library.json");
   LIBRARY=await res.json();
   renderLibrary();
 }
-
-function saveHistory(){
-  localStorage.setItem("lunaHistory",JSON.stringify(historyData));
-}
-
-/* ================= LIBRARY UI ================= */
 
 function renderLibrary(){
   const grid=document.getElementById("grid");
@@ -122,14 +201,16 @@ function renderLibrary(){
   const category=document.getElementById("categoryFilter").value;
 
   const sorted=[...LIBRARY].sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
-
   sorted.slice(0,5).forEach(b=>recentRow.appendChild(createCard(b)));
 
-  LIBRARY.forEach(b=>{
-    if(b.title.toLowerCase().includes(search) && (category==="All"||b.category===category)){
-      grid.appendChild(createCard(b));
+  LIBRARY.forEach(book=>{
+    if(
+      book.title.toLowerCase().includes(search) &&
+      (category==="All" || book.category===category)
+    ){
+      grid.appendChild(createCard(book));
     }
-    if(historyData[b.id]) continueRow.appendChild(createCard(b));
+    if(historyData[book.id]) continueRow.appendChild(createCard(book));
   });
 }
 
@@ -137,16 +218,14 @@ document.getElementById("searchInput").oninput=renderLibrary;
 document.getElementById("categoryFilter").onchange=renderLibrary;
 
 function createCard(book){
-  const progress=historyData[book.id]?.page||0;
   const card=document.createElement("div");
   card.className="card";
+  const progress=historyData[book.id]?.progress||0;
   card.innerHTML=`
-  <img src="${book.coverUrl}">
-  <div class="progress-bar" style="width:${progress}%"></div>
-  <div class="card-info">
-  <h4>${book.title}</h4>
-  <small>${book.category}</small>
-  </div>`;
+    <img src="${book.coverUrl}">
+    <div class="progress" style="width:${progress}%"></div>
+    <div class="card-info">${book.title}</div>
+  `;
   card.onclick=()=>openReader(book);
   return card;
 }
@@ -156,152 +235,143 @@ function createCard(book){
 async function openReader(book){
   currentBook=book;
   renderedPages={};
-  currentZoom=1;
+  readingMode=historyData[book.id]?.mode||"scroll";
 
   document.getElementById("libraryView").classList.add("hidden");
   document.getElementById("readerView").classList.remove("hidden");
+  document.getElementById("readerTitle").innerText=book.title;
 
   const reader=document.getElementById("reader");
   reader.innerHTML="";
-  reader.style.transform="scale(1)";
+  reader.scrollTop=historyData[book.id]?.scroll||0;
 
-  if(book.fileType==="pdf"){
-    currentPDF=await pdfjsLib.getDocument(book.fileUrl).promise;
+  let fileData=await getOfflinePDF(book.id);
+  if(!fileData){
+    fileData=book.fileUrl;
+  }
 
-    const firstPage=await currentPDF.getPage(1);
-    const viewport=firstPage.getViewport({scale:1});
-    const containerWidth=window.innerWidth-40;
-    baseScale=containerWidth/viewport.width;
+  currentPDF=await pdfjsLib.getDocument(fileData).promise;
 
-    for(let i=1;i<=currentPDF.numPages;i++){
-      const div=document.createElement("div");
-      div.id="page-"+i;
+  const firstPage=await currentPDF.getPage(1);
+  const viewport=firstPage.getViewport({scale:1});
+  baseScale=(window.innerWidth-40)/viewport.width;
+
+  createLazyPages();
+  reader.addEventListener("scroll",handleLazyLoad);
+  handleLazyLoad();
+}
+
+/* ================= READING MODES ================= */
+
+function setMode(mode){
+  readingMode=mode;
+  historyData[currentBook.id]=historyData[currentBook.id]||{};
+  historyData[currentBook.id].mode=mode;
+  localStorage.setItem("lunaHistory",JSON.stringify(historyData));
+  document.getElementById("reader").innerHTML="";
+  renderedPages={};
+  createLazyPages();
+  handleLazyLoad();
+}
+
+function createLazyPages(){
+  const reader=document.getElementById("reader");
+  for(let i=1;i<=currentPDF.numPages;i++){
+    const div=document.createElement("div");
+    div.id="page-"+i;
+    div.style.minHeight="800px";
+
+    if(readingMode==="double" && window.innerWidth>900){
+      div.style.flex="0 0 48%";
+      div.style.margin="1%";
+    }else{
       div.style.width="100%";
-      if(window.innerWidth>900){
-        div.style.flex="0 0 48%"; // double-page desktop only
-        div.style.margin="1%";
-      }
-      reader.appendChild(div);
     }
 
-    reader.addEventListener("scroll",handleScroll);
-    handleScroll();
-
-    const lastPage=historyData[book.id]?.page||1;
-    setTimeout(()=>{
-      const el=document.getElementById("page-"+lastPage);
-      if(el) el.scrollIntoView();
-    },400);
-
-    enablePinchZoom(reader);
-  }
-
-  if(book.fileType==="cbz"){
-    await renderCBZ(book.fileUrl);
-    enablePinchZoom(reader);
-  }
-
-  if(book.fileType==="epub"){
-    const bookEpub=ePub(book.fileUrl);
-    const rendition=bookEpub.renderTo("reader",{width:"100%",height:"100%"});
-    rendition.display(historyData[book.id]?.cfi||undefined);
-    rendition.on("relocated",loc=>{
-      historyData[book.id]={cfi:loc.start.cfi};
-      saveHistory();
-    });
+    reader.appendChild(div);
   }
 }
 
-/* ================= PDF LAZY LOAD ================= */
+/* ================= LAZY LOAD ================= */
 
-async function handleScroll(){
+async function handleLazyLoad(){
+  const reader=document.getElementById("reader");
   const pages=document.querySelectorAll("[id^='page-']");
-  const viewportHeight=window.innerHeight;
+  const vh=window.innerHeight;
 
   pages.forEach(async div=>{
     const rect=div.getBoundingClientRect();
-    if(rect.top<viewportHeight+400 && rect.bottom>-400){
-      const pageNum=parseInt(div.id.split("-")[1]);
-      if(!renderedPages[pageNum]){
-        const page=await currentPDF.getPage(pageNum);
+    if(rect.top<vh+300 && rect.bottom>-300){
+      const num=parseInt(div.id.split("-")[1]);
+      if(!renderedPages[num]){
+        const page=await currentPDF.getPage(num);
         const viewport=page.getViewport({scale:baseScale});
         const canvas=document.createElement("canvas");
         canvas.width=viewport.width;
         canvas.height=viewport.height;
-        await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
+        await page.render({
+          canvasContext:canvas.getContext("2d"),
+          viewport
+        }).promise;
+        div.innerHTML="";
         div.appendChild(canvas);
-        renderedPages[pageNum]=true;
+        renderedPages[num]=true;
       }
     }
   });
 
-  detectCurrentPage();
+  saveProgress();
 }
 
-function detectCurrentPage(){
-  const pages=document.querySelectorAll("[id^='page-']");
-  let closest=1;
-  let min=Infinity;
-  pages.forEach(div=>{
-    const rect=div.getBoundingClientRect();
-    const d=Math.abs(rect.top);
-    if(d<min){
-      min=d;
-      closest=parseInt(div.id.split("-")[1]);
-    }
-  });
-  historyData[currentBook.id]={page:closest};
-  saveHistory();
-}
+/* ================= SAVE ================= */
 
-/* ================= PINCH ZOOM ================= */
-
-function enablePinchZoom(el){
-  let startDist=0;
-  el.addEventListener("touchmove",e=>{
-    if(e.touches.length===2){
-      e.preventDefault();
-      const dx=e.touches[0].clientX-e.touches[1].clientX;
-      const dy=e.touches[0].clientY-e.touches[1].clientY;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-
-      if(!startDist){
-        startDist=dist;
-      }else{
-        let scaleFactor=dist/startDist;
-        let newZoom=currentZoom*scaleFactor;
-        newZoom=Math.max(1,Math.min(newZoom,3));
-        el.style.transform=`scale(${newZoom})`;
-      }
-    }
-  });
-
-  el.addEventListener("touchend",()=>{
-    currentZoom=parseFloat(el.style.transform.replace(/[^\d.]/g,''))||1;
-    startDist=0;
-  });
-}
-
-/* ================= CBZ ================= */
-
-async function renderCBZ(url){
-  const response=await fetch(url);
-  const arrayBuffer=await response.arrayBuffer();
-  const zip=new JSZip();
-  const content=await zip.loadAsync(arrayBuffer);
-  const images=Object.keys(content.files).filter(f=>/\.(png|jpg|jpeg)$/i.test(f)).sort();
+function saveProgress(){
   const reader=document.getElementById("reader");
-  images.forEach(async f=>{
-    const imgData=await content.files[f].async("base64");
-    const img=document.createElement("img");
-    img.src="data:image/png;base64,"+imgData;
-    if(window.innerWidth>900){
-      img.style.width="48%";
-      img.style.margin="1%";
-    }else{
-      img.style.width="100%";
-    }
-    reader.appendChild(img);
+  historyData[currentBook.id]=historyData[currentBook.id]||{};
+  historyData[currentBook.id].scroll=reader.scrollTop;
+
+  const percent=(reader.scrollTop/(reader.scrollHeight-reader.clientHeight))*100;
+  historyData[currentBook.id].progress=percent;
+
+  localStorage.setItem("lunaHistory",JSON.stringify(historyData));
+}
+
+/* ================= MENU ================= */
+
+function toggleMenu(){
+  const m=document.getElementById("readerMenu");
+  m.style.display=m.style.display==="flex"?"none":"flex";
+}
+
+/* ================= OFFLINE DOWNLOAD ================= */
+
+async function downloadCurrentPDF(){
+  const response=await fetch(currentBook.fileUrl);
+  const blob=await response.blob();
+  const db=await openDB();
+  const tx=db.transaction("pdfs","readwrite");
+  tx.objectStore("pdfs").put(blob,currentBook.id);
+  alert("Downloaded for offline use");
+}
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open("LunaReadsDB",1);
+    request.onupgradeneeded=e=>{
+      const db=e.target.result;
+      db.createObjectStore("pdfs");
+    };
+    request.onsuccess=e=>resolve(e.target.result);
+    request.onerror=e=>reject(e);
+  });
+}
+
+async function getOfflinePDF(id){
+  const db=await openDB();
+  return new Promise(resolve=>{
+    const tx=db.transaction("pdfs","readonly");
+    const req=tx.objectStore("pdfs").get(id);
+    req.onsuccess=()=>resolve(req.result||null);
   });
 }
 
@@ -310,11 +380,11 @@ async function renderCBZ(url){
 function goBack(){
   document.getElementById("readerView").classList.add("hidden");
   document.getElementById("libraryView").classList.remove("hidden");
-  document.getElementById("reader").style.transform="scale(1)";
-  renderLibrary();
+  currentBook=null;
 }
 
 loadLibrary();
 </script>
+
 </body>
 </html>
