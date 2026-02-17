@@ -258,7 +258,7 @@ function detectCurrentPage(){
 }
 
 /* ================= ZOOM ================= */
-function zoomIn(){ if(currentScale+0.2>MAX_SCALE) return; currentScale+=0.2; rerenderPDF(); }
+/*function zoomIn(){ if(currentScale+0.2>MAX_SCALE) return; currentScale+=0.2; rerenderPDF(); }
 function zoomOut(){ if(currentScale-0.2<MIN_SCALE) return; currentScale-=0.2; rerenderPDF(); }
 
 async function rerenderPDF(){
