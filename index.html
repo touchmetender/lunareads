@@ -5,129 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Luna Reads</title>
 
+<link rel="manifest" href="manifest.json">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/epubjs/dist/epub.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:#0f0f0f;
-  color:white;
-}
-
-/* Views */
-.view{
-  position:absolute;
-  width:100%;
-  height:100vh;
-  top:0;
-  left:0;
-}
+body{margin:0;font-family:sans-serif;background:#0f0f0f;color:white;}
+.view{position:absolute;width:100%;height:100vh;top:0;left:0;}
 .hidden{display:none;}
-
-/* Home */
-.topbar{
-  background:#1a1a1a;
-  padding:10px;
-  display:flex;
-  gap:10px;
-  align-items:center;
-}
-.topbar input, .topbar select{
-  padding:6px;
-  border-radius:6px;
-  border:none;
-}
-
-.section-title{
-  padding:12px;
-  font-weight:bold;
-}
-
-.horizontal{
-  display:flex;
-  overflow-x:auto;
-  gap:12px;
-  padding:12px;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-  gap:12px;
-  padding:12px;
-  overflow-y:auto;
-  height:calc(100vh - 220px);
-}
-
-.card{
-  background:#1b1b1b;
-  border-radius:12px;
-  overflow:hidden;
-  cursor:pointer;
-  min-width:140px;
-}
-
+.topbar{background:#1a1a1a;padding:10px;display:flex;gap:10px;align-items:center;}
+.topbar input,.topbar select{padding:6px;border-radius:6px;border:none;}
+.section-title{padding:12px;font-weight:bold;}
+.horizontal{display:flex;overflow-x:auto;gap:12px;padding:12px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:12px;overflow-y:auto;height:calc(100vh - 220px);}
+.card{background:#1b1b1b;border-radius:12px;overflow:hidden;cursor:pointer;min-width:140px;position:relative;}
 .card img{width:100%;}
 .card-info{padding:8px;}
 .progress{height:4px;background:#00e676;}
-
-/* Reader */
-.reader-header{
-  height:56px;
-  background:#121212;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 12px;
-  border-bottom:1px solid #222;
-}
-
-.reader-header button{
-  background:none;
-  border:none;
-  color:white;
-  font-size:18px;
-}
-
-#reader{
-  height:calc(100vh - 56px);
-  overflow-y:auto;
-  padding:10px;
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-}
-
-canvas{
-  margin-bottom:10px;
-  max-width:100%;
-}
-
-/* Menu */
-.menu{
-  position:absolute;
-  top:56px;
-  right:10px;
-  background:#1b1b1b;
-  padding:10px;
-  border-radius:8px;
-  display:none;
-  flex-direction:column;
-  gap:8px;
-}
-.menu button{
-  padding:6px;
-  background:#2962ff;
-  border:none;
-  color:white;
-  border-radius:6px;
-}
+.reader-header{height:56px;background:#121212;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #222;}
+.reader-header button{background:none;border:none;color:white;font-size:18px;}
+#reader{height:calc(100vh - 56px);overflow-y:auto;padding:10px;display:flex;flex-wrap:wrap;justify-content:center;scroll-snap-type:y mandatory;}
+canvas{margin-bottom:10px;max-width:100%;}
+.menu{position:absolute;top:56px;right:10px;background:#1b1b1b;padding:10px;border-radius:8px;display:none;flex-direction:column;gap:8px;}
+.menu button{padding:6px;background:#2962ff;border:none;color:white;border-radius:6px;}
+.badge{position:absolute;top:8px;left:8px;background:#00e676;padding:4px 6px;font-size:10px;border-radius:6px;}
+#downloadProgress{height:6px;background:#00e676;width:0%;border-radius:4px;margin-top:4px;}
 </style>
 </head>
 <body>
 
-<!-- HOME -->
 <div id="libraryView" class="view">
   <div class="topbar">
     <h2>🌙 Luna Reads</h2>
@@ -151,7 +58,6 @@ canvas{
   <div id="grid" class="grid"></div>
 </div>
 
-<!-- READER -->
 <div id="readerView" class="view hidden">
   <div class="reader-header">
     <button onclick="goBack()">←</button>
@@ -165,7 +71,10 @@ canvas{
     <button onclick="setMode('scroll')">Scroll Mode</button>
     <button onclick="setMode('double')">2-Page Spread</button>
     <button onclick="setMode('single')">Single Page</button>
-    <button onclick="downloadCurrentPDF()">Download Offline</button>
+    <button onclick="toggleSnap()">Toggle Snap</button>
+    <button onclick="downloadCurrent()">Download Offline</button>
+    <button onclick="openDownloads()">Manage Downloads</button>
+    <div id="downloadProgress"></div>
   </div>
 </div>
 
@@ -173,18 +82,23 @@ canvas{
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
+/* ================= SERVICE WORKER ================= */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js").then(reg=>reg.update());
+}
+
+/* ================= VARIABLES ================= */
 let LIBRARY=[];
 let currentBook=null;
 let currentPDF=null;
 let renderedPages={};
-let baseScale=1;
 let readingMode="scroll";
-let historyData=JSON.parse(localStorage.getItem("lunaHistory"))||{};
+let historyData=JSON.parse(localStorage.getItem("lunaHistory")||"{}");
+let snapEnabled=false;
 
-/* ================= LOAD LIBRARY ================= */
-
+/* ================= LIBRARY ================= */
 async function loadLibrary(){
-  const res=await fetch("library.json");
+  const res=await fetch("library.json?"+Date.now());
   LIBRARY=await res.json();
   renderLibrary();
 }
@@ -193,9 +107,7 @@ function renderLibrary(){
   const grid=document.getElementById("grid");
   const continueRow=document.getElementById("continueRow");
   const recentRow=document.getElementById("recentRow");
-  grid.innerHTML="";
-  continueRow.innerHTML="";
-  recentRow.innerHTML="";
+  grid.innerHTML=""; continueRow.innerHTML=""; recentRow.innerHTML="";
 
   const search=document.getElementById("searchInput").value.toLowerCase();
   const category=document.getElementById("categoryFilter").value;
@@ -204,24 +116,20 @@ function renderLibrary(){
   sorted.slice(0,5).forEach(b=>recentRow.appendChild(createCard(b)));
 
   LIBRARY.forEach(book=>{
-    if(
-      book.title.toLowerCase().includes(search) &&
-      (category==="All" || book.category===category)
-    ){
+    if(book.title.toLowerCase().includes(search) &&
+       (category==="All"||book.category===category)){
       grid.appendChild(createCard(book));
     }
     if(historyData[book.id]) continueRow.appendChild(createCard(book));
   });
 }
 
-document.getElementById("searchInput").oninput=renderLibrary;
-document.getElementById("categoryFilter").onchange=renderLibrary;
-
 function createCard(book){
   const card=document.createElement("div");
   card.className="card";
   const progress=historyData[book.id]?.progress||0;
   card.innerHTML=`
+    ${isDownloaded(book.id)?'<div class="badge">DOWNLOADED</div>':''}
     <img src="${book.coverUrl}">
     <div class="progress" style="width:${progress}%"></div>
     <div class="card-info">${book.title}</div>
@@ -230,8 +138,10 @@ function createCard(book){
   return card;
 }
 
-/* ================= OPEN READER ================= */
+document.getElementById("searchInput").oninput=renderLibrary;
+document.getElementById("categoryFilter").onchange=renderLibrary;
 
+/* ================= OPEN READER ================= */
 async function openReader(book){
   currentBook=book;
   renderedPages={};
@@ -245,23 +155,88 @@ async function openReader(book){
   reader.innerHTML="";
   reader.scrollTop=historyData[book.id]?.scroll||0;
 
-  let fileData=await getOfflinePDF(book.id);
-  if(!fileData){
-    fileData=book.fileUrl;
+  const offline = await getFile(book.id);
+  const fileData = offline?offline:book.fileUrl;
+
+  if(book.fileType==="pdf"){
+    const arrayBuffer = offline ? await offline.arrayBuffer() : null;
+    currentPDF = await pdfjsLib.getDocument(offline ? {data: new Uint8Array(arrayBuffer)} : fileData).promise;
+    createLazyPages();
+    reader.addEventListener("scroll",handleLazyLoad);
+    handleLazyLoad();
   }
 
-  currentPDF=await pdfjsLib.getDocument(fileData).promise;
+  if(book.fileType==="epub"){
+    const url = offline ? URL.createObjectURL(offline) : book.fileUrl;
+    const bookEPUB = ePub(url);
+    bookEPUB.renderTo("reader",{width:"100%",height:"100%"});
+  }
 
-  const firstPage=await currentPDF.getPage(1);
-  const viewport=firstPage.getViewport({scale:1});
-  baseScale=(window.innerWidth-40)/viewport.width;
-
-  createLazyPages();
-  reader.addEventListener("scroll",handleLazyLoad);
-  handleLazyLoad();
+  if(book.fileType==="cbz"){
+    const blob = offline ? offline : await fetch(fileData).then(r=>r.blob());
+    const zip = await JSZip.loadAsync(blob);
+    for(const name of Object.keys(zip.files)){
+      if(name.match(/\.(jpg|jpeg|png)$/)){
+        const imgBlob = await zip.files[name].async("blob");
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(imgBlob);
+        img.style.maxWidth="100%";
+        reader.appendChild(img);
+      }
+    }
+  }
 }
 
-/* ================= READING MODES ================= */
+/* ================= PDF LAZY ================= */
+function createLazyPages(){
+  const reader=document.getElementById("reader");
+  for(let i=1;i<=currentPDF.numPages;i++){
+    const div=document.createElement("div");
+    div.id="page-"+i; div.style.minHeight="800px";
+    if(readingMode==="double" && window.innerWidth>900){ div.style.flex="0 0 48%"; div.style.margin="1%";}
+    else{div.style.width="100%";}
+    reader.appendChild(div);
+  }
+}
+
+async function handleLazyLoad(){
+  const reader=document.getElementById("reader");
+  const pages=document.querySelectorAll("[id^='page-']");
+  const vh=window.innerHeight;
+  for(const div of pages){
+    const rect=div.getBoundingClientRect();
+    if(rect.top<vh+300 && rect.bottom>-300){
+      const num=parseInt(div.id.split("-")[1]);
+      if(!renderedPages[num]){
+        const page=await currentPDF.getPage(num);
+        const viewport=page.getViewport({scale:(window.innerWidth-40)/page.getViewport({scale:1}).width});
+        const canvas=document.createElement("canvas");
+        canvas.width=viewport.width;
+        canvas.height=viewport.height;
+        await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
+        div.innerHTML=""; div.appendChild(canvas);
+        renderedPages[num]=true;
+      }
+    }
+  }
+  saveProgress();
+}
+
+/* ================= SAVE ================= */
+function saveProgress(){
+  const reader=document.getElementById("reader");
+  historyData[currentBook.id]=historyData[currentBook.id]||{};
+  historyData[currentBook.id].scroll=reader.scrollTop;
+  const percent=(reader.scrollTop/(reader.scrollHeight-reader.clientHeight))*100;
+  historyData[currentBook.id].progress=percent;
+  localStorage.setItem("lunaHistory",JSON.stringify(historyData));
+}
+
+/* ================= READER MENU ================= */
+function toggleMenu(){
+  const m=document.getElementById("readerMenu");
+  m.style.display=m.style.display==="flex"?"none":"flex";
+}
 
 function setMode(mode){
   readingMode=mode;
@@ -270,112 +245,13 @@ function setMode(mode){
   localStorage.setItem("lunaHistory",JSON.stringify(historyData));
   document.getElementById("reader").innerHTML="";
   renderedPages={};
-  createLazyPages();
-  handleLazyLoad();
+  if(currentBook.fileType==="pdf") createLazyPages();
 }
 
-function createLazyPages(){
-  const reader=document.getElementById("reader");
-  for(let i=1;i<=currentPDF.numPages;i++){
-    const div=document.createElement("div");
-    div.id="page-"+i;
-    div.style.minHeight="800px";
-
-    if(readingMode==="double" && window.innerWidth>900){
-      div.style.flex="0 0 48%";
-      div.style.margin="1%";
-    }else{
-      div.style.width="100%";
-    }
-
-    reader.appendChild(div);
-  }
+function toggleSnap(){
+  snapEnabled=!snapEnabled;
+  document.getElementById("reader").style.scrollSnapType = snapEnabled?"y mandatory":"none";
 }
-
-/* ================= LAZY LOAD ================= */
-
-async function handleLazyLoad(){
-  const reader=document.getElementById("reader");
-  const pages=document.querySelectorAll("[id^='page-']");
-  const vh=window.innerHeight;
-
-  pages.forEach(async div=>{
-    const rect=div.getBoundingClientRect();
-    if(rect.top<vh+300 && rect.bottom>-300){
-      const num=parseInt(div.id.split("-")[1]);
-      if(!renderedPages[num]){
-        const page=await currentPDF.getPage(num);
-        const viewport=page.getViewport({scale:baseScale});
-        const canvas=document.createElement("canvas");
-        canvas.width=viewport.width;
-        canvas.height=viewport.height;
-        await page.render({
-          canvasContext:canvas.getContext("2d"),
-          viewport
-        }).promise;
-        div.innerHTML="";
-        div.appendChild(canvas);
-        renderedPages[num]=true;
-      }
-    }
-  });
-
-  saveProgress();
-}
-
-/* ================= SAVE ================= */
-
-function saveProgress(){
-  const reader=document.getElementById("reader");
-  historyData[currentBook.id]=historyData[currentBook.id]||{};
-  historyData[currentBook.id].scroll=reader.scrollTop;
-
-  const percent=(reader.scrollTop/(reader.scrollHeight-reader.clientHeight))*100;
-  historyData[currentBook.id].progress=percent;
-
-  localStorage.setItem("lunaHistory",JSON.stringify(historyData));
-}
-
-/* ================= MENU ================= */
-
-function toggleMenu(){
-  const m=document.getElementById("readerMenu");
-  m.style.display=m.style.display==="flex"?"none":"flex";
-}
-
-/* ================= OFFLINE DOWNLOAD ================= */
-
-async function downloadCurrentPDF(){
-  const response=await fetch(currentBook.fileUrl);
-  const blob=await response.blob();
-  const db=await openDB();
-  const tx=db.transaction("pdfs","readwrite");
-  tx.objectStore("pdfs").put(blob,currentBook.id);
-  alert("Downloaded for offline use");
-}
-
-function openDB(){
-  return new Promise((resolve,reject)=>{
-    const request=indexedDB.open("LunaReadsDB",1);
-    request.onupgradeneeded=e=>{
-      const db=e.target.result;
-      db.createObjectStore("pdfs");
-    };
-    request.onsuccess=e=>resolve(e.target.result);
-    request.onerror=e=>reject(e);
-  });
-}
-
-async function getOfflinePDF(id){
-  const db=await openDB();
-  return new Promise(resolve=>{
-    const tx=db.transaction("pdfs","readonly");
-    const req=tx.objectStore("pdfs").get(id);
-    req.onsuccess=()=>resolve(req.result||null);
-  });
-}
-
-/* ================= BACK ================= */
 
 function goBack(){
   document.getElementById("readerView").classList.add("hidden");
@@ -383,6 +259,55 @@ function goBack(){
   currentBook=null;
 }
 
+/* ================= DOWNLOAD ================= */
+async function downloadCurrent(){
+  const response = await fetch(currentBook.fileUrl);
+  const readerStream = response.body.getReader();
+  const contentLength = response.headers.get("Content-Length");
+  let received = 0;
+  let chunks = [];
+
+  while(true){
+    const {done,value} = await readerStream.read();
+    if(done) break;
+    chunks.push(value);
+    received += value.length;
+    document.getElementById("downloadProgress").style.width = Math.round(received/contentLength*100)+"%";
+  }
+  const blob = new Blob(chunks);
+  const db = await openDB();
+  db.transaction("files","readwrite").objectStore("files").put(blob,currentBook.id);
+  document.getElementById("downloadProgress").style.width="0%";
+  renderLibrary();
+}
+
+function openDownloads(){
+  alert("Download manager coming next phase.");
+}
+
+/* ================= INDEXEDDB ================= */
+function openDB(){
+  return new Promise(resolve=>{
+    const request = indexedDB.open("LunaReadsDB",1);
+    request.onupgradeneeded = e => { e.target.result.createObjectStore("files"); };
+    request.onsuccess = e => resolve(e.target.result);
+  });
+}
+
+async function getFile(id){
+  const db = await openDB();
+  return new Promise(resolve=>{
+    const tx = db.transaction("files","readonly");
+    const req = tx.objectStore("files").get(id);
+    req.onsuccess = ()=>resolve(req.result||null);
+  });
+}
+
+function isDownloaded(id){
+  return !!historyData[id]?.downloaded;
+}
+
+/* ================= INIT ================= */
 loadLibrary();
 </script>
 
