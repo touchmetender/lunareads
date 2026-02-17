@@ -1,0 +1,74 @@
+[
+  {
+    "id": "thedukeandi",
+    "title": "Book 1: The Duke and I",
+    "category": "Book",
+    "fileType": "pdf",
+    "fileUrl": "pdfs/thedukeandi.pdf",
+    "coverUrl": "covers/thedukeandi.jpg",
+    "updatedAt": "2026-02-17"
+  },
+  {
+    "id": "theviscountwholoveme",
+    "title": "Book 2: The Viscount Who Loved Me",
+    "category": "Book",
+    "fileType": "pdf",
+    "fileUrl": "pdfs/theviscountwholoveme.pdf",
+    "coverUrl": "covers/theviscountwholoveme.jpg",
+    "updatedAt": "2026-02-17"
+  },
+  {
+    "id": "anofferfromagentleman",
+    "title": "Book 3: An Offer From A Gentleman",
+    "category": "Book",
+    "fileType": "pdf",
+    "fileUrl": "pdfs/anofferfromagentleman.pdf",
+    "coverUrl": "covers/anofferfromagentleman.jpg",
+    "updatedAt": "2026-02-17"
+  },
+  {
+    "id": "romancingmrbridgerton",
+    "title": "Book 4: Romancing Mr. Bridgerton",
+    "category": "Book",
+    "fileType": "pdf",
+    "fileUrl": "pdfs/romancingmrbridgerton.pdf",
+    "coverUrl": "covers/romancingmrbridgerton.jpg",
+    "updatedAt": "2026-02-17"
+  },
+  {
+    "id": "tosirphillipwithlove",
+    "title": "Book 5: To Sir Phillip, With Love",
+    "category": "Book",
+    "fileType": "pdf",
+    "fileUrl": "pdfs/tosirphillipwithlove.pdf",
+    "coverUrl": "covers/tosirphillipwithlove.jpg",
+    "updatedAt": "2026-02-17"
+  },
+  {
+    "id": "whenhewaswicked",
+    "title": "Book 6: When He Was Wicked ",
+    "category": "Book",
+    "fileType": "pdf",
+    "fileUrl": "pdfs/whenhewaswicked.pdf",
+    "coverUrl": "covers/whenhewaswicked.jpg",
+    "updatedAt": "2026-02-17"
+  },
+  {
+    "id": "itsinhiskiss",
+    "title": "Book 7: It’s In His Kiss",
+    "category": "Book",
+    "fileType": "pdf",
+    "fileUrl": "pdfs/itsinhiskiss.pdf",
+    "coverUrl": "covers/itsinhiskiss.jpg",
+    "updatedAt": "2026-02-17"
+  },
+  {
+    "id": "theeminenceofshadowvol1",
+    "title": "The Eminence in Shadow - Volume 01",
+    "category": "Book",
+    "fileType": "epub",
+    "fileUrl": "pdfs/theeminenceofshadowvol1.epub",
+    "coverUrl": "covers/theeminenceofshadowvol1.jpg",
+    "updatedAt": "2026-02-17"
+  }
+]
