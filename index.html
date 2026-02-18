@@ -263,33 +263,72 @@ async function openReader(book){
 }
 
 // ================= PDF LAZY =================
-function createLazyPages(){
-  const reader=document.getElementById("reader");
-  for(let i=1;i<=currentPDF.numPages;i++){
-    const div=document.createElement("div");div.id="page-"+i;div.style.minHeight="800px";
-    if(readingMode==="double" && window.innerWidth>900){div.style.flex="0 0 48%";div.style.margin="1%";}
-    else{div.style.width="100%";}
-    reader.appendChild(div);
-  }
-}
-async function handleLazyLoad(){
-  const reader=document.getElementById("reader");const pages=document.querySelectorAll("[id^='page-']");const vh=window.innerHeight;
-  for(const div of pages){
-    const rect=div.getBoundingClientRect();
-    if(rect.top<vh+300 && rect.bottom>-300){
-      const num=parseInt(div.id.split("-")[1]);
-      if(!renderedPages[num]){
-        const page=await currentPDF.getPage(num);
-        const viewport=page.getViewport({scale:(window.innerWidth-40)/page.getViewport({scale:1}).width});
-        const canvas=document.createElement("canvas");
-        canvas.width=viewport.width;canvas.height=viewport.height;
-        await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
-        div.innerHTML="";div.appendChild(canvas);renderedPages[num]=true;
-      }
+function createLazyPages() {
+    const reader = document.getElementById("reader");
+    reader.innerHTML = ""; // clear previous pages
+    for (let i = 1; i <= currentPDF.numPages; i++) {
+        const div = document.createElement("div");
+        div.id = "page-" + i;
+        div.style.minHeight = "800px";
+        div.style.display = "flex";
+        div.style.justifyContent = "center";
+        div.style.marginBottom = "10px";
+
+        if (readingMode === "double" && window.innerWidth > 900) {
+            div.style.flex = "0 0 48%";
+            div.style.margin = "1%";
+        } else {
+            div.style.width = "100%";
+        }
+
+        reader.appendChild(div);
     }
-  }
-  saveProgress();
 }
+
+async function handleLazyLoad() {
+    const reader = document.getElementById("reader");
+    const pages = document.querySelectorAll("[id^='page-']");
+    const vh = window.innerHeight;
+
+    for (const div of pages) {
+        const rect = div.getBoundingClientRect();
+        if (rect.top < vh + 300 && rect.bottom > -300) {
+            const num = parseInt(div.id.split("-")[1]);
+            if (!renderedPages[num]) {
+                const page = await currentPDF.getPage(num);
+
+                // Base viewport at scale 1
+                const viewport = page.getViewport({ scale: 1 });
+
+                // Calculate scale for double-page mode and devicePixelRatio
+                let baseScale = (window.innerWidth - 40) / viewport.width;
+                if (readingMode === "double" && window.innerWidth > 900) {
+                    baseScale = (window.innerWidth / 2 - 40) / viewport.width;
+                }
+                const scale = baseScale * window.devicePixelRatio;
+
+                const finalViewport = page.getViewport({ scale });
+
+                const canvas = document.createElement("canvas");
+                canvas.width = finalViewport.width;
+                canvas.height = finalViewport.height;
+                canvas.style.width = `${finalViewport.width / window.devicePixelRatio}px`;
+                canvas.style.height = `${finalViewport.height / window.devicePixelRatio}px`;
+
+                await page.render({ canvasContext: canvas.getContext("2d"), viewport: finalViewport }).promise;
+
+                div.innerHTML = "";
+                div.appendChild(canvas);
+                renderedPages[num] = true;
+            }
+        }
+    }
+
+    saveProgress();
+}
+
+// Optional: call handleLazyLoad on scroll
+document.getElementById("reader").addEventListener("scroll", handleLazyLoad);
 
 // ================= SAVE =================
 function saveProgress(){
